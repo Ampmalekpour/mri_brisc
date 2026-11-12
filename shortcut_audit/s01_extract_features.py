@@ -50,10 +50,20 @@ def main():
         r_eff = np.sqrt(area / np.pi)
         bcx, bcy = centroid(br)
         rec.update(r_eff=r_eff, b_cx=bcx, b_cy=bcy)
+        # acquisition / scanner cues (global intensity statistics, noise level) - NOT biology
+        g = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY).astype(np.float32)
+        v = g[br]
+        rec.update(int_mean=float(v.mean()), int_std=float(v.std()), int_p5=float(np.percentile(v, 5)),
+                   int_p50=float(np.percentile(v, 50)), int_p95=float(np.percentile(v, 95)),
+                   bg_mean=float(g[~br].mean()) if (~br).any() else np.nan,
+                   noise_lap=float(cv2.Laplacian(g, cv2.CV_32F)[br].var()))
         mask = read_mask(r["mask_path"], img.shape) if r["class"] != "no_tumor" else np.zeros(br.shape, bool)
         if mask.any():
             tcx, tcy = centroid(mask)
-            dist = cv2.distanceTransform(br.astype(np.uint8), cv2.DIST_L2, 5)
+            # pad with a 1-px zero border: scans cropped tightly to the head have NO background pixels and
+            # distanceTransform would return ~1e34 ("infinite") for them
+            dist = cv2.distanceTransform(cv2.copyMakeBorder(br.astype(np.uint8), 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0),
+                                         cv2.DIST_L2, 5)[1:-1, 1:-1]
             rec.update(t_cx=tcx, t_cy=tcy, tumor_area=float(mask.sum()),
                        radial_depth=np.hypot(tcx - bcx, tcy - bcy) / r_eff,
                        dural_dist_norm=float(dist[int(round(tcy)), int(round(tcx))]) / r_eff,

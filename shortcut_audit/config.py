@@ -48,6 +48,9 @@ BATCH_SIZE = 32
 EPOCHS = int(os.environ.get('AUDIT_EPOCHS', 10))
 LR = float(os.environ.get('AUDIT_LR', 1e-4))
 NUM_WORKERS = 0              # keep 0 on Windows/PyCharm unless you know you need more
+WEIGHTS_DIR = Path(os.environ.get("AUDIT_WEIGHTS", PROJECT_DIR / "weights"))   # optional local pretrained files
+# If True, s00 relabels leaky images so they are never used for evaluation (see s00_build_index.py)
+REMOVE_LEAKY = True
 PRETRAINED = os.environ.get('AUDIT_PRETRAINED','1')=='1'            # ImageNet weights through timm (needs internet the first time)
 
 # Architectures used in the study (timm names): one CNN family, one classic CNN, one transformer.

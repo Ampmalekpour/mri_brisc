@@ -39,6 +39,18 @@ pip install -r shortcut_audit/requirements.txt      # install the CUDA build of 
    If your `val` folder was carved out of train, make sure it is not also in `test`; s00 reports leakage.
 3. In PyCharm set the *working directory* of each run configuration to `shortcut_audit/`.
 
+## Offline pretrained weights (if the download fails behind a proxy/VPN)
+`s03` downloads ImageNet weights from huggingface.co through timm. The code first retries with proxy variables cleared; if that
+also fails, download the files once (any network, e.g. a browser) and save them in `shortcut_audit/weights/` with these names:
+
+| file name | link |
+|---|---|
+| `efficientnet_b0.safetensors` | https://huggingface.co/timm/efficientnet_b0.ra_in1k/resolve/main/model.safetensors |
+| `resnet50.safetensors` | https://huggingface.co/timm/resnet50.a1_in1k/resolve/main/model.safetensors |
+| `vit_small_patch16_224.safetensors` | https://huggingface.co/timm/vit_small_patch16_224.augreg_in21k_ft_in1k/resolve/main/model.safetensors |
+
+(`AUDIT_WEIGHTS` env var changes the folder). Training from scratch (`AUDIT_PRETRAINED=0`) works but gives weaker models.
+
 ## Running
 Smoke test without real data (synthetic fake BRISC, minutes on CPU):
 ```bash

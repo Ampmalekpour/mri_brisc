@@ -10,6 +10,8 @@ TRAIN split and scored on the TEST split, repeated over several seeds. Each prob
    shape            area_ratio, solidity, circularity, eccentricity
    mask_only        32x32 down-sampled binary tumor mask (silhouette: location + size + shape)
    all_hand         location + plane + shape
+   image_file_size  original width / height / aspect of the file (curation artefact, not biology)
+   intensity_noise  global grey-level statistics and noise level (scanner / protocol cue)
 
 Interpretation: a probe far above chance (33 %) is an information ceiling for that cue. If
 'location' alone approaches CNN accuracy, location is a *potential* shortcut; whether the CNNs use
@@ -29,6 +31,8 @@ from common import read_mask, read_rgb
 
 LOC = ["radial_depth", "dural_dist_norm", "min_edge_dist", "dy_norm", "dx_abs"]
 SHAPE = ["area_ratio", "solidity", "circularity", "eccentricity"]
+INTENSITY = ["int_mean", "int_std", "int_p5", "int_p50", "int_p95", "bg_mean", "noise_lap"]
+GEOM = ["img_w", "img_h", "aspect"]   # original file size: pure acquisition/curation cue
 
 
 def mask_vec(row, size=32):
@@ -41,7 +45,9 @@ def main():
     idx = pd.read_csv(C.INDEX_CSV)
     feats = pd.read_csv(C.FEATURES_CSV)
     df = idx.merge(feats, on="path")
-    df = df[df["class"].isin(C.TUMOR_CLASSES)].dropna(subset=LOC + SHAPE).reset_index(drop=True)
+    df["aspect"] = df["img_w"] / df["img_h"]
+    df["bg_mean"] = df["bg_mean"].fillna(0.0)
+    df = df[df["class"].isin(C.TUMOR_CLASSES)].dropna(subset=LOC + SHAPE + INTENSITY).reset_index(drop=True)
     for p in ("Axial", "Coronal", "Sagittal"):
         df[f"plane_{p}"] = (df["plane"] == p).astype(float)
     PLANE = [c for c in df.columns if c.startswith("plane_")]
@@ -54,7 +60,8 @@ def main():
     M_te = np.stack([mask_vec(r) for _, r in te.iterrows()])
 
     sets = {"plane": PLANE, "location": LOC, "location+plane": LOC + PLANE, "shape": SHAPE,
-            "all_hand": LOC + PLANE + SHAPE}
+            "all_hand": LOC + PLANE + SHAPE,
+            "image_file_size": GEOM, "intensity_noise": INTENSITY, "acquisition(size+intensity)": GEOM + INTENSITY}
     chance = te["class"].value_counts(normalize=True).max()
     rows = []
     for seed in C.SEEDS:

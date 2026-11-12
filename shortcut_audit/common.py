@@ -238,13 +238,51 @@ class BriscDataset(Dataset):
 
 
 # ------------------------------------------------------------------------------ models
+def _find_local_weights(arch):
+    for ext in (".safetensors", ".pth", ".pt", ".bin"):
+        p = C.WEIGHTS_DIR / f"{arch}{ext}"
+        if p.exists():
+            return p
+    return None
+
+
 def make_model(arch: str, num_classes: int, pretrained=None, img_size=C.IMAGE_SIZE):
+    """timm model. Pretrained weights: local file `weights/<arch>.safetensors` if present, else download
+    (retrying once with proxy variables cleared), else a clear error."""
+    import os
     import timm
     pretrained = C.PRETRAINED if pretrained is None else pretrained
     kw = dict(pretrained=pretrained, num_classes=num_classes)
     if arch.startswith(("vit", "deit")):
         kw["img_size"] = img_size
-    return timm.create_model(arch, **kw)
+    if not pretrained:
+        return timm.create_model(arch, **kw)
+    local = _find_local_weights(arch)
+    if local is not None:
+        return timm.create_model(arch, pretrained_cfg_overlay=dict(file=str(local)), **kw)
+    try:
+        return timm.create_model(arch, **kw)
+    except Exception as e1:
+        saved = {k: os.environ.pop(k) for k in list(os.environ) if k.lower() in ("http_proxy", "https_proxy", "all_proxy")}
+        try:
+            print("[warn] pretrained download failed, retrying without proxy variables ...")
+            return timm.create_model(arch, **kw)
+        except Exception as e2:
+            os.environ.update(saved)
+            raise RuntimeError(
+                f"Could not download pretrained weights for '{arch}' ({type(e2).__name__}).\n"
+                f"Fix: download the file once (browser / another network) and save it as\n"
+                f"   {C.WEIGHTS_DIR / (arch + '.safetensors')}\n"
+                f"See shortcut_audit/README.md ('Offline pretrained weights') for the exact links.\n"
+                f"Or (not recommended, weaker models) set AUDIT_PRETRAINED=0 to train from scratch.") from e1
+
+
+def make_grad_scaler(device):
+    enabled = device.type == "cuda"
+    try:
+        return torch.amp.GradScaler("cuda", enabled=enabled)
+    except (AttributeError, TypeError):          # older torch
+        return torch.cuda.amp.GradScaler(enabled=enabled)
 
 
 def load_run(run_dir, device=None):

@@ -33,7 +33,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 import config as C
-from common import BriscDataset, get_device, load_index, make_model, predict, set_seed
+from common import BriscDataset, get_device, load_index, make_grad_scaler, make_model, predict, set_seed
 
 
 def run_name(a):
@@ -50,8 +50,12 @@ def train_one(a):
     df_te = load_index(C.TEST_SPLIT, tumor_only)
     df_va = load_index(C.VAL_SPLIT, tumor_only)
     if len(df_va) == 0:
-        df_tr, df_va = train_test_split(df_tr, test_size=0.1, stratify=df_tr["class"], random_state=a.seed)
-        print("[info] no val split found -> held out 10 % of train for model selection")
+        # group-aware hold-out: near-duplicate slices (s00 'group') never straddle train / val
+        from sklearn.model_selection import GroupShuffleSplit
+        groups = df_tr["group"] if "group" in df_tr else np.arange(len(df_tr))
+        tr_i, va_i = next(GroupShuffleSplit(1, test_size=0.1, random_state=a.seed).split(df_tr, groups=groups))
+        df_tr, df_va = df_tr.iloc[tr_i].reset_index(drop=True), df_tr.iloc[va_i].reset_index(drop=True)
+        print("[info] no usable val split -> held out 10 % of train (grouped by near-duplicates) for model selection")
     if len(df_te) == 0:
         raise SystemExit(f"no test split '{C.TEST_SPLIT}' in the index")
 
@@ -71,7 +75,7 @@ def train_one(a):
     opt = torch.optim.AdamW(model.parameters(), lr=C.LR, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs)
     crit = nn.CrossEntropyLoss()
-    scaler = torch.amp.GradScaler(enabled=dev.type == "cuda")
+    scaler = make_grad_scaler(dev)
     y_va = np.array([ds_va.cls2idx[c] for c in df_va["class"]])
 
     best, hist = -1.0, []
