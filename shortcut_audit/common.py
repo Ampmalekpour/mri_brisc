@@ -246,6 +246,28 @@ def _find_local_weights(arch):
     return None
 
 
+def load_local_weights(model, path, arch):
+    """Load a downloaded timm checkpoint ourselves and VERIFY it belongs to this architecture
+    (a mislabeled file would otherwise be silently ignored and the model trained from scratch)."""
+    path = Path(path)
+    if path.suffix == ".safetensors":
+        from safetensors.torch import load_file
+        sd = load_file(str(path))
+    else:
+        sd = torch.load(path, map_location="cpu")
+        sd = sd.get("state_dict", sd) if isinstance(sd, dict) else sd
+    own = model.state_dict()
+    ok = {k: v for k, v in sd.items() if k in own and own[k].shape == v.shape}
+    frac = len(ok) / max(1, len(own))
+    if frac < 0.8:
+        raise RuntimeError(
+            f"{path.name} does not look like '{arch}' weights: only {len(ok)}/{len(own)} tensors match "
+            f"(its keys start with e.g. {list(sd)[:3]}). The file is probably a DIFFERENT model - "
+            f"check which download you renamed to {arch}{path.suffix}.")
+    model.load_state_dict(ok, strict=False)            # classifier head stays freshly initialised
+    print(f"[weights] {arch}: loaded {len(ok)}/{len(own)} tensors from {path.name}")
+
+
 def make_model(arch: str, num_classes: int, pretrained=None, img_size=C.IMAGE_SIZE):
     """timm model. Pretrained weights: local file `weights/<arch>.safetensors` if present, else download
     (retrying once with proxy variables cleared), else a clear error."""
@@ -259,7 +281,10 @@ def make_model(arch: str, num_classes: int, pretrained=None, img_size=C.IMAGE_SI
         return timm.create_model(arch, **kw)
     local = _find_local_weights(arch)
     if local is not None:
-        return timm.create_model(arch, pretrained_cfg_overlay=dict(file=str(local)), **kw)
+        kw["pretrained"] = False
+        model = timm.create_model(arch, **kw)
+        load_local_weights(model, local, arch)
+        return model
     try:
         return timm.create_model(arch, **kw)
     except Exception as e1:
