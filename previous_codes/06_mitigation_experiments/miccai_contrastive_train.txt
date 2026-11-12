@@ -1,0 +1,10 @@
+=== MICCAI REPRESENTATION DE-BIASING PIPELINE (SupCon) ===
+Backbone Architecture: EfficientNet-B0
+Goal: Minimize contextual shortcuts (Radial Depth, Dural border)
+Execution Core Hardware: cuda
+
+Dataset initialized with 5000 perfectly aligned pairs.
+Starting Context-Invariant Contrastive Pre-training for 50 epochs...
+Metric Focus: Morphology of Glioma/Meningioma/Pituitary vs. Spatial Priors.
+
+Epoch [1/50]
