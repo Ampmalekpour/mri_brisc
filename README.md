@@ -4,5 +4,6 @@
 |---|---|
 | `previous_codes/` | everything done so far (training, mask interventions, SRS/CDM, Grad-CAM, YOLO, Siamese ...), organised in numbered topics, each file with a header describing what it does. **Archived - logic unchanged.** |
 | `shortcut_audit/` | the new, structured study: data hygiene -> cue probes -> multi-seed models -> natural experiment -> controlled interventions -> quantified XAI -> report. **Start here.** |
+| [`handcrafted/`](handcrafted/README.md) | BRISC feature decomposition, classical classifiers, matched CNN baselines and analysis, with step-by-step PyCharm scripts. |
 
 Get the code on your machine: see "Getting the code" in `shortcut_audit/README.md`.
