@@ -4,7 +4,9 @@ import os
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DATA_ROOT = Path(os.environ.get("BRISC_ROOT", r"D:\Datasets\Medical\brisc2025"))
+# Existing BRISC 2025 dataset folder on your Windows machine.
+DEFAULT_DATA_ROOT = Path(r"D:\Datasets\Medical\brisc2025")
+DATA_ROOT = Path(os.environ["BRISC_ROOT"]) if os.environ.get("BRISC_ROOT") else DEFAULT_DATA_ROOT
 OUTPUT_DIR = Path(os.environ.get("BRISC_HANDCRAFTED_OUT", HERE / "outputs"))
 
 TRAIN_SPLIT = "train"

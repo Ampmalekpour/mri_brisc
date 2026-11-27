@@ -175,6 +175,7 @@ def make_groups(rows, hashes):
 
 
 def main():
+    print(f"BRISC dataset root: {C.DATA_ROOT}", flush=True)
     if len({C.TRAIN_SPLIT, C.VAL_SPLIT, C.TEST_SPLIT}) < 3:
         raise ValueError("TRAIN_SPLIT, VAL_SPLIT and TEST_SPLIT must be distinct.")
     if not 0 <= C.DHASH_MAX_DISTANCE <= 256:
