@@ -94,12 +94,17 @@ def main():
                     )
     raw = pd.DataFrame(rows).replace([np.inf, -np.inf], np.nan)
     baselines = raw[["sample_id", "group", "feature", "baseline"]].drop_duplicates()
-    spread = baselines.groupby(["group", "feature"]).baseline.agg(
-        iqr=lambda values: values.quantile(0.75) - values.quantile(0.25),
-        median_magnitude=lambda values: values.abs().median(),
+    spread = (
+        baselines.dropna(subset=["baseline"])
+        .groupby(["group", "feature"])
+        .baseline.agg(
+            iqr=lambda values: values.quantile(0.75) - values.quantile(0.25),
+            median_magnitude=lambda values: values.abs().median(),
+        )
     )
-    spread["normalization"] = spread[["iqr", "median_magnitude"]].mul([1, 0.05]).max(axis=1).clip(lower=1e-8)
-    raw = raw.merge(spread[["normalization"]].reset_index(), on=["group", "feature"])
+    scale = spread[["iqr", "median_magnitude"]].mul([1, 0.05]).max(axis=1)
+    spread["normalization"] = scale.where(scale > 1e-8)
+    raw = raw.merge(spread[["normalization"]].reset_index(), on=["group", "feature"], how="left")
     raw["scaled_change"] = raw.absolute_change / raw.normalization
     summary = (
         raw.groupby(["group", "feature", "perturbation"])

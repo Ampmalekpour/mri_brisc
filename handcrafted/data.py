@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 import pandas as pd
 from PIL import Image
-from scipy import ndimage as ndi
 
 import config as C
 
@@ -53,8 +52,14 @@ def bounds(mask):
     return slice(y.min(), y.max() + 1), slice(x.min(), x.max() + 1)
 
 
+def distance_to_zeros(support):
+    distance = cv2.distanceTransform(support.astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    # Squared pixel distances are integers. Recover them before comparing ring widths.
+    return np.sqrt(np.rint(np.square(distance, dtype=np.float64)))
+
+
 def distance_inside(mask):
-    return ndi.distance_transform_edt(np.pad(mask, 1))[1:-1, 1:-1]
+    return distance_to_zeros(np.pad(mask, 1))[1:-1, 1:-1]
 
 
 def foreground(gray):

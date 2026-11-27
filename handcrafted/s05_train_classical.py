@@ -353,6 +353,7 @@ def main():
     save_json(
         dict(
             manifest_sha256=manifest_digest(),
+            plane_filter=C.PLANE_FILTER,
             experiments=chosen,
             models=list(C.MODELS),
             seed=C.SEED,

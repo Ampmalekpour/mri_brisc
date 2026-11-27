@@ -24,6 +24,7 @@ TEXTURE_SENSITIVITY_BINS = (16, 64)
 QC_IMAGES_PER_CLASS = 2
 
 # Empty selection runs all named experiments and F01–F25 individually.
+PLANE_FILTER = None  # Use "Axial", "Coronal" or "Sagittal" for a single-plane ML and CNN run.
 EXPERIMENT_IDS = ()
 MODELS = ("logistic", "lda", "svm", "random_forest", "xgboost", "knn")
 TUNE_MODELS = True

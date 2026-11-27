@@ -6,7 +6,7 @@ from PIL import Image, JpegImagePlugin
 from scipy import ndimage as ndi
 
 import config as C
-from data import PLANES, bounds, distance_inside, resolve
+from data import PLANES, bounds, distance_inside, distance_to_zeros, resolve
 from feature_utils import entropy, histogram, prefix, ratio, region_intensity
 from texture import lbp_features, radiomics
 
@@ -63,9 +63,13 @@ def background(regions):
     result.update(prefix("outside_head", region_intensity(gray, outside)))
     # Keep all texture samples outside the head, without manufacturing a black image.
     gray_float = gray.astype(float)
-    support = distance_inside(outside) > 2
+    iy, ix = np.ogrid[-2:3, -2:3]
+    disk = (iy**2 + ix**2 <= 4).astype(np.uint8)
+    support = cv2.erode(outside.astype(np.uint8), disk, borderType=cv2.BORDER_CONSTANT, borderValue=0).astype(
+        bool
+    )
     laplacian = cv2.Laplacian(gray_float, -1)
-    residual = gray_float - ndi.median_filter(gray, 3)
+    residual = gray_float - cv2.medianBlur(gray, 3)
     result["outside_laplacian_std"] = laplacian[support].std() if support.any() else np.nan
     result["outside_residual_mad"] = np.median(abs(residual[support])) if support.any() else np.nan
     markings = outside & (gray >= 80)
@@ -136,7 +140,7 @@ def anatomical_relationships(regions):
     hy, hx = bounds(head)
     center_x = (hx.start + hx.stop - 1) / 2
     inside = distance_inside(head)
-    signed = inside - ndi.distance_transform_edt(~head)
+    signed = inside - distance_to_zeros(~head)
     contour = mask & ~ndi.binary_erosion(mask)
     near = abs(signed[contour])
     y, x = np.nonzero(mask)

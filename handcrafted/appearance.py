@@ -6,6 +6,7 @@ from scipy import ndimage as ndi
 from skimage import feature, measure
 
 import config as C
+from data import distance_to_zeros
 from feature_utils import EPS, entropy, histogram, prefix, ratio, region_intensity, stats, vector
 from texture import lbp_features, multiscale, radiomics
 
@@ -136,7 +137,7 @@ def boundary(regions):
     gradient = np.hypot(gx[y, x], gy[y, x])
     alignment = abs(gx[y, x] * nx + gy[y, x] * ny) / (gradient + EPS)
     canny = feature.canny(gray.astype(float) / 255, sigma=1)
-    edge_distance = ndi.distance_transform_edt(~canny)[y, x] if canny.any() else np.full(len(y), np.nan)
+    edge_distance = distance_to_zeros(~canny)[y, x] if canny.any() else np.full(len(y), np.nan)
     return {
         **prefix("gradient", stats(gradient)),
         **prefix("normal_contrast", stats(contrast)),

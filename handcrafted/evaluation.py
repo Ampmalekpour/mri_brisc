@@ -8,6 +8,7 @@ from sklearn.model_selection import StratifiedGroupKFold
 from sklearn.metrics import roc_auc_score
 
 import config as C
+from data import PLANES
 
 
 def cohort_rows(manifest, cohort):
@@ -17,6 +18,10 @@ def cohort_rows(manifest, cohort):
     else:
         rows = manifest[manifest.label.isin(C.ALL_CLASSES)]
         classes = C.ALL_CLASSES
+    if C.PLANE_FILTER is not None:
+        if C.PLANE_FILTER not in PLANES:
+            raise ValueError(f"PLANE_FILTER must be one of {PLANES} or None.")
+        rows = rows.loc[rows.plane.eq(C.PLANE_FILTER)]
     train = rows.loc[rows.split.eq(C.TRAIN_SPLIT)].reset_index(drop=True)
     test = rows.loc[rows.split.eq(C.TEST_SPLIT)].reset_index(drop=True)
     for name, table in (("training", train), ("official test", test)):

@@ -7,7 +7,7 @@ from scipy import ndimage as ndi
 from scipy.spatial.distance import pdist
 from skimage import measure, morphology
 
-from data import bounds, distance_inside
+from data import bounds, distance_inside, distance_to_zeros
 from feature_utils import EPS, area_resize, centered_view, prefix, ratio, stats, vector
 
 
@@ -42,8 +42,10 @@ def anatomical_location(regions, x, y):
     radius = np.sqrt(head.sum() / np.pi)
     depth = distance_inside(head)[y, x] / radius
     overlap = head[y, x]
-    periphery = ndi.distance_transform_edt(~head)[y, x] / radius
-    outside_distance = np.where(overlap, depth, periphery)
+    boundary_distance = depth.copy()
+    if not overlap.all():
+        outside = distance_to_zeros(~head)
+        boundary_distance[~overlap] = outside[y[~overlap], x[~overlap]] / radius
     angle = np.arctan2(cy - 0.5, cx - 0.5)
     return dict(
         head_relative_x=cx,
@@ -57,8 +59,8 @@ def anatomical_location(regions, x, y):
         mean_depth=depth.mean(),
         max_depth=depth.max(),
         median_depth=np.median(depth),
-        min_boundary_distance=outside_distance.min(),
-        mean_boundary_distance=outside_distance.mean(),
+        min_boundary_distance=boundary_distance.min(),
+        mean_boundary_distance=boundary_distance.mean(),
     )
 
 
@@ -179,7 +181,9 @@ def topology(mask):
     holes = ndi.binary_fill_holes(mask) & ~mask
     hole_count = measure.label(holes, connectivity=1).max()
     skeleton = morphology.skeletonize(mask)
-    neighbours = ndi.convolve(skeleton.astype(np.uint8), np.ones((3, 3), dtype=np.uint8)) - skeleton
+    neighbours = (
+        ndi.convolve(skeleton.astype(np.uint8), np.ones((3, 3), dtype=np.uint8), mode="constant") - skeleton
+    )
     return dict(
         components=len(components),
         holes=hole_count,
@@ -227,6 +231,6 @@ def extract(regions):
         "F07": basic_shape(region, hull, contour_perimeter, sizes["max_feret_px"], sizes["min_feret_px"]),
         "F08": advanced_shape(centered, contour),
         "F09": boundary_geometry(contour, contour_perimeter, region.area),
-        "F10": topology(mask),
+        "F10": topology(mask[ys, xs]),
         "F11": occupancy(mask),
     }

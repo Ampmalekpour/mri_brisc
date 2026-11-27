@@ -1,12 +1,12 @@
 """Small image and feature helpers used by the extraction stages."""
 
 from dataclasses import dataclass
+from functools import cached_property
 
 import cv2
 import numpy as np
-from scipy import ndimage as ndi
 
-from data import bounds, distance_inside, foreground
+from data import bounds, distance_inside, distance_to_zeros, foreground
 
 
 EPS = 1e-8
@@ -17,11 +17,21 @@ class Regions:
     gray: np.ndarray
     mask: np.ndarray
 
-    def __post_init__(self):
-        self.head = foreground(self.gray)
-        self.scale = min(self.gray.shape) / 256.0
-        self.inside = distance_inside(self.mask) if self.mask.any() else None
-        self.outside = ndi.distance_transform_edt(~self.mask) if self.mask.any() else None
+    @cached_property
+    def head(self):
+        return foreground(self.gray)
+
+    @cached_property
+    def scale(self):
+        return min(self.gray.shape) / 256.0
+
+    @cached_property
+    def inside(self):
+        return distance_inside(self.mask) if self.mask.any() else None
+
+    @cached_property
+    def outside(self):
+        return distance_to_zeros(~self.mask) if self.mask.any() else None
 
     def ring(self, low, high, restrict=False):
         ring = (self.outside > low * self.scale) & (self.outside <= high * self.scale)

@@ -1,5 +1,6 @@
 """Run one decomposition stage, print summaries and save auditable feature tables."""
 
+import cv2
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -107,6 +108,7 @@ def save_qc(row, gray, regions, stage):
 
 
 def run_stage(title, group_ids, extract_row, stage, save_patches=False):
+    cv2.setNumThreads(1)
     manifest = load_manifest()
     records = {group: [] for group in group_ids}
     descriptor_records = {}

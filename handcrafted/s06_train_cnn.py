@@ -183,6 +183,7 @@ def main():
     save_json(
         dict(
             manifest_sha256=manifest_digest(),
+            plane_filter=C.PLANE_FILTER,
             seeds=list(C.CNN_SEEDS),
             epochs=C.CNN_EPOCHS,
             image_size=C.CNN_SIZE,
