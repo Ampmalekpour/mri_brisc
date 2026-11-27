@@ -22,20 +22,16 @@ If you already have the branch locally, use `git switch codex/brisc-handcrafted-
 
 ## Configure PyCharm
 
-1. Open the `mri_brisc` folder in PyCharm and create a project virtual environment with Python 3.11 or 3.12.
-2. In PyCharm's Terminal, install the feature extraction and classical ML dependencies using the project interpreter.
+1. Open the `mri_brisc` folder in PyCharm and select the interpreter you already use for the previous scripts.
+2. The pipeline uses that interpreter's OpenCV, PyTorch and other shared libraries. Install the feature-specific packages if they are missing.
 
    ```bash
-   python -m pip install -r handcrafted/requirements.txt
+   python -m pip install "scikit-image>=0.23,<1" "PyWavelets>=1.5,<2" "mahotas>=1.4.15,<2" "xgboost>=2.1,<4"
    ```
 
-   For step 6, install PyTorch. The CPU installation is shown below. A CUDA-enabled PyTorch installation can also be used.
+   For a fresh Python 3.11 or 3.12 environment, install `handcrafted/requirements.txt` with `python -m pip install -r handcrafted/requirements.txt`. Step 6 uses the project's existing PyTorch. On a fresh CPU-only environment, install it with `python -m pip install torch --index-url https://download.pytorch.org/whl/cpu`.
 
-   ```bash
-   python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-   ```
-
-3. In `handcrafted/config.py`, set `DATA_ROOT` to the extracted folder that contains `classification_task` and `segmentation_task`. The repository's existing `BRISC_ROOT` environment variable also works. Set `OUTPUT_DIR` if you want a separate results directory. [Official BRISC data on Zenodo](https://doi.org/10.5281/zenodo.17524350)
+3. The default dataset root is `D:\Datasets\Medical\brisc2025`, the same path used by the previous scripts. An existing `BRISC_ROOT` setting in the run environment also applies. To use another path, edit `handcrafted/config.py`. [Official BRISC data on Zenodo](https://doi.org/10.5281/zenodo.17524350)
 4. Right-click each step script in the Project pane and choose **Run**. Its path is resolved independently of the run configuration's working directory.
 
 ```text

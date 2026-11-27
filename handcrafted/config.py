@@ -1,4 +1,4 @@
-"""Edit this file before running the stages from PyCharm."""
+"""PyCharm settings. The dataset path follows the existing shortcut audit defaults."""
 
 import os
 from pathlib import Path
